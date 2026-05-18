@@ -1,6 +1,5 @@
 fastapi[standard]
 mysql-connector-python
-pytest
 httpx
 python-jose[cryptography]
 pydantic[email]

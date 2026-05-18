@@ -448,6 +448,7 @@ end //
 
 create procedure register_user (in p_name varchar(64), in p_second_name varchar(64), in p_surname varchar(64), in p_gender varchar(32), in p_login varchar(32), in p_password varchar(256))
 begin
+	declare v_hashed_password varchar(255);
 	declare exit handler for sqlexception
 	begin
 		rollback;
@@ -455,8 +456,7 @@ begin
 	end;
 
 	start transaction;
-	declare v_hashed_password varchar(255);
-	set v_hased_password = lower(sha2(p_password, 256));
+	set v_hashed_password = lower(sha2(p_password, 256));
 
 	insert into people (name, second_name, surname, gender) values (p_name, p_second_name, p_surname, p_gender);
 	set @p_id_people = last_insert_id();
