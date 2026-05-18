@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>University Portal</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="stylesheet" href="student.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── Topbar ── -->
+  <header class="topbar">
+    <a class="topbar-brand" onclick="showView('login-view')">
+      <span class="brand-icon">🎓</span>
+      University Portal
+    </a>
+    <nav class="topbar-nav">
+      <a id="nav-register" class="nav-link" data-view="register-view" onclick="showView('register-view')">Register</a>
+      <a id="nav-login"    class="nav-link" data-view="login-view"    onclick="showView('login-view')">Sign in</a>
+      <a id="nav-dashboard" class="nav-link" data-view="dashboard-view" onclick="openDashboard()" style="display:none;">Dashboard</a>
+      <div id="nav-sep" class="nav-sep" style="display:none;"></div>
+      <button id="nav-logout" class="btn-logout" onclick="logout()" style="display:none;">Sign out</button>
+    </nav>
+  </header>
+
+  <!-- ══════════════════════════════════════
+       REGISTER VIEW
+  ══════════════════════════════════════ -->
+  <div id="register-view" class="view">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="card-icon">✍️</div>
+        <h2>Create your account</h2>
+        <p class="subtitle">Join the university portal to manage courses and applications.</p>
+
+        <div class="field">
+          <label>First name <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="reg-name" placeholder="e.g. Anna">
+        </div>
+        <div class="field">
+          <label>Second name <span style="color:var(--text-muted)">optional</span></label>
+          <input type="text" id="reg-second-name" placeholder="e.g. Maria">
+        </div>
+        <div class="field">
+          <label>Surname <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="reg-surname" placeholder="e.g. Kowalska">
+        </div>
+        <div class="field">
+          <label>Gender <span style="color:var(--danger)">*</span></label>
+          <select id="reg-gender">
+            <option value="" disabled selected>Select gender</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Username <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="reg-login" placeholder="Choose a login" autocomplete="username">
+        </div>
+        <div class="field">
+          <label>Password <span style="color:var(--danger)">*</span></label>
+          <input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password"
+            onkeydown="if(event.key==='Enter') register()">
+        </div>
+
+        <button id="reg-btn" class="btn btn-primary btn-full" onclick="register()">Create account</button>
+
+        <div class="auth-switch">
+          Already have an account? <a onclick="showView('login-view')">Sign in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       LOGIN VIEW
+  ══════════════════════════════════════ -->
+  <div id="login-view" class="view active">
+    <div class="auth-wrap">
+      <div class="auth-card">
+        <div class="card-icon">🔑</div>
+        <h2>Welcome back</h2>
+        <p class="subtitle">Sign in to access your dashboard, courses, and applications.</p>
+
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="login-username" placeholder="Your login" autocomplete="username">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter') login()">
+        </div>
+
+        <button id="login-btn" class="btn btn-primary btn-full" onclick="login()">Sign in</button>
+
+        <div class="auth-switch">
+          Don't have an account? <a onclick="showView('register-view')">Register</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       DASHBOARD VIEW
+  ══════════════════════════════════════ -->
+  <div id="dashboard-view" class="view">
+    <div class="page-content">
+
+      <div class="section-header">
+        <h2>Student Dashboard</h2>
+        <span class="user-badge">● <span id="user-badge">Student</span></span>
+      </div>
+
+      <!-- Status bar -->
+      <div class="status-bar">
+        <span id="status-dot" class="status-dot yellow"></span>
+        <span id="status-text">Loading…</span>
+      </div>
+
+      <!-- ── Panel: Complete Profile ── -->
+      <div id="panel-profile" class="panel" style="display:none;">
+        <div class="panel-header" onclick="handlePanelToggle('panel-profile')">
+          <span class="panel-title">📋 Complete Your Profile</span>
+          <span class="panel-chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">
+            Fill in your candidate details to access programmes and courses.
+          </p>
+          <div class="field">
+            <label>Nationality (country code)</label>
+            <input type="text" id="can-nationality" placeholder="e.g. PL, US, DE" maxlength="4">
+          </div>
+          <div class="field">
+            <label>PESEL</label>
+            <input type="text" id="can-pesel" placeholder="11-digit PESEL" maxlength="11">
+          </div>
+          <div class="field">
+            <label>Contact email</label>
+            <input type="email" id="can-email" placeholder="your@email.com">
+          </div>
+          <div class="field">
+            <label>Phone number</label>
+            <input type="text" id="can-phone" placeholder="+48 123 456 789">
+          </div>
+          <div class="field">
+            <label>Home address</label>
+            <input type="text" id="can-address" placeholder="Street, City, Postcode">
+          </div>
+          <button id="profile-btn" class="btn btn-primary btn-full" onclick="submitCandidateProfile()">
+            Submit profile
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Panel: Programmes ── -->
+      <div id="panel-programmes" class="panel" style="display:none;">
+        <div class="panel-header" onclick="handlePanelToggle('panel-programmes')">
+          <span class="panel-title">🏛 Available Programmes</span>
+          <span class="panel-chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <div id="programmes-list"></div>
+        </div>
+      </div>
+
+      <!-- ── Panel: Applications ── -->
+      <div id="panel-applications" class="panel" style="display:none;">
+        <div class="panel-header" onclick="handlePanelToggle('panel-applications')">
+          <span class="panel-title">📄 My Applications</span>
+          <span class="panel-chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <div id="applications-list"></div>
+        </div>
+      </div>
+
+      <!-- ── Panel: Courses ── -->
+      <div id="panel-courses" class="panel" style="display:none;">
+        <div class="panel-header" onclick="handlePanelToggle('panel-courses')">
+          <span class="panel-title">📚 My Courses</span>
+          <span class="panel-chevron">▾</span>
+        </div>
+        <div class="panel-body">
+          <div class="course-actions">
+            <button class="btn btn-ghost btn-sm" onclick="loadCurrentCourses(); document.getElementById('current-courses-list').style.display=''; document.getElementById('eligible-courses-list').style.display='none';">
+              My Enrolments
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="loadEligibleCourses(); document.getElementById('eligible-courses-list').style.display=''; document.getElementById('current-courses-list').style.display='none';">
+              Register for Course
+            </button>
+          </div>
+          <div id="current-courses-list"></div>
+          <div id="eligible-courses-list" style="display:none;"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /app-shell -->
+
+<!-- ── Apply Modal ── -->
+<div id="apply-modal" class="modal-overlay hidden" onclick="if(event.target===this) closeApplyModal()">
+  <div class="modal-card">
+    <h3>Apply to Programme</h3>
+    <p class="modal-sub" id="modal-prog-name" style="color:var(--text-primary); font-weight:500;"></p>
+    <div class="field">
+      <label>Motivation letter</label>
+      <textarea id="modal-motivation" rows="5" placeholder="Tell us why you want to join this programme…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeApplyModal()">Cancel</button>
+      <button id="modal-submit-btn" class="btn btn-primary" onclick="submitApplication()">Submit application</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script src="student.js"></script>
+</body>
+</html>

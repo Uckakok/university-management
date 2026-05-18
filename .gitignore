@@ -1,0 +1,51 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+venvStudies/
+env/
+ENV/
+.venv
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Local configuration
+config.local.*
+*.local
+
+# FastAPI / Python runtime
+__pycache__/
+
+# MySQL (if you have local dumps)
+
+# Deployment
+temp/
+tmp/
+*.tmp
+
+# OS files
+Thumbs.db
+desktop.ini

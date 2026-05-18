@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── Top Navigation ── -->
+  <header class="topbar">
+    <a class="topbar-brand" onclick="showView('login-view')" style="cursor:pointer;">
+      <span class="brand-icon">🎓</span>
+      Admin Portal
+    </a>
+    <nav class="topbar-nav">
+      <a id="nav-dashboard" class="nav-link" onclick="openDashboard()" style="display:none;">
+        Dashboard
+      </a>
+      <div class="nav-sep" id="nav-sep" style="display:none;"></div>
+      <button id="nav-logout" class="btn-logout" onclick="logout()" style="display:none;">
+        Sign out
+      </button>
+    </nav>
+  </header>
+
+  <!-- ══════════════════════════════════════
+       LOGIN VIEW
+  ══════════════════════════════════════ -->
+  <div id="login-view" class="view active">
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="card-icon">🔐</div>
+        <h2>Administrator Sign In</h2>
+        <p class="subtitle">Access the management console to handle registrations, grades, and applications.</p>
+
+        <div class="field">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" placeholder="Admin username" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter') login()">
+        </div>
+
+        <button id="login-btn" class="btn btn-primary btn-full" onclick="login()">
+          Sign in
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       DASHBOARD VIEW
+  ══════════════════════════════════════ -->
+  <div id="dashboard-view" class="view">
+    <div class="page-content">
+
+      <div class="dash-header">
+        <h2>Management Console</h2>
+        <span class="admin-badge">● <span id="admin-badge">Administrator</span></span>
+      </div>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="registrations" onclick="switchTab('registrations')">
+          📋 Registrations &amp; Grades
+        </button>
+        <button class="tab-btn" data-tab="applications" onclick="switchTab('applications')">
+          📄 Applications
+        </button>
+      </div>
+
+      <!-- ── Registrations Tab ── -->
+      <div id="tab-registrations" class="tab-content active-tab">
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" onclick="loadRegistrations()">⟳ Refresh</button>
+        </div>
+        <div id="registrations-list"></div>
+      </div>
+
+      <!-- ── Applications Tab ── -->
+      <div id="tab-applications" class="tab-content">
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" onclick="loadApplications()">⟳ Refresh</button>
+        </div>
+        <div id="applications-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /app-shell -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>

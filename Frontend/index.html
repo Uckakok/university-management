@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>University Portal</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
+        nav { margin-bottom: 30px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        nav a { margin-right: 15px; cursor: pointer; color: blue; text-decoration: underline; font-weight: bold; }
+        .view { display: none; }
+        .active { display: block; }
+        input, select { display: block; width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #28a745; color: white; border: none; cursor: pointer; font-size: 16px; }
+        #response { margin-top: 20px; font-weight: bold; padding: 10px; border-radius: 4px; }
+         .course-list {
+        margin-top: 15px;
+        border-top: 1px solid #eee;
+        padding-top: 10px;
+    }
+    .course-item {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .eligible-course:hover {
+        background: #e9ecef;        border-left-color: #28a745;
+    }
+    .course-item strong {
+        display: block;
+        color: #333;
+    }
+    .course-detail {
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 5px;
+    }
+    .spots-left {
+        display: inline-block;
+        background: #17a2b8;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        margin-left: 10px;
+    }
+    .no-courses {
+        color: #6c757d;
+        font-style: italic;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+    .course-buttons {
+        display: flex;
+        gap: 10px;
+        margin: 15px 0;
+    }
+    .course-buttons button {
+        flex: 1;
+        background: #6c757d;
+        margin: 0;
+    }
+    .course-buttons button:first-child {
+        background: #007bff;
+    }
+    .course-buttons button:last-child {
+        background: #28a745;
+    }
+    </style>
+</head>
+<body>
+
+<nav id="main-nav">
+    <a onclick="showView('register-view')">Register</a>
+    <a onclick="showView('login-view')">Login</a>
+    <a onclick="openDashboard()" id="dash-link" style="display:none;">Dashboard</a>
+    <a onclick="logout()" id="logout-link" style="display:none; color: red;">Logout</a>
+</nav>
+
+<!-- DASHBOARD VIEW -->
+<div id="dashboard-view" class="view">
+    <h2>Student Dashboard</h2>
+    <div id="application-status">Checking status...</div>
+
+    <!-- Candidate application form (hidden initially) -->
+    <div id="candidate-form" style="display:none;">
+        <h3>Complete your Application</h3>
+        <input type="text" id="can-nationality" placeholder="Nationality (e.g., PL, US)">
+        <input type="text" id="can-pesel" placeholder="PESEL (11 digits)">
+        <input type="email" id="can-email" placeholder="Contact Email">
+        <input type="text" id="can-phone" placeholder="Phone Number">
+        <input type="text" id="can-address" placeholder="Home Address">
+        <button onclick="submitCandidateData()" style="background: #6f42c1;">Submit Application</button>
+    </div>
+
+    <!-- Programmes and applications section -->
+    <div id="programmes-section" style="display:none;">
+        <h3>Available Programmes</h3>
+        <div id="programmes-list"></div>
+        <button onclick="loadApplications()" style="background:#007bff; margin-top:10px;">
+            View My Applications
+        </button>
+        <div id="applications-section" style="margin-top:15px;"></div>
+    </div>
+
+    <!-- NEW: Course Management Section (visible only when candidate profile exists) -->
+    <div id="course-management" style="display:none; margin-top: 30px; border-top: 2px solid #dee2e6; padding-top: 20px;">
+        <h3>Course Management</h3>
+        <div class="course-buttons">
+            <button onclick="fetchCurrentCourses()">📚 Show My Current Courses</button>
+            <button onclick="fetchEligibleCourses()">📖 Show Eligible Courses</button>
+        </div>
+        <div id="current-courses-list" class="course-list" style="display:none;"></div>
+        <div id="eligible-courses-list" class="course-list" style="display:none;"></div>
+    </div>
+</div>
+
+    <!-- REGISTER VIEW -->
+    <div id="register-view" class="view active">
+        <h2>Create Account</h2>
+        <input type="text" id="reg-name" placeholder="First Name">
+        <input type="text" id="reg-second-name" placeholder="Second Name (Optional)">
+        <input type="text" id="reg-surname" placeholder="Surname">
+        <select id="reg-gender"><option value="" disabled selected>Select Gender</option></select>
+        <input type="text" id="reg-login" placeholder="Login">
+        <input type="password" id="reg-password" placeholder="Password">
+        <button onclick="submitRegister()">Register</button>
+    </div>
+
+    <!-- LOGIN VIEW -->
+    <div id="login-view" class="view">
+        <h2>Login</h2>
+        <input type="text" id="login-username" placeholder="Login">
+        <input type="password" id="login-password" placeholder="Password">
+        <button onclick="submitLogin()" style="background: #007bff;">Login</button>
+    </div>
+
+    <p id="response"></p>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+
+        // --- Helper Functions ---
+
+
+        async function fetchCurrentCourses() {
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            setMsg("You must be logged in", true);
+            return;
+        }
+
+        const currentContainer = document.getElementById('current-courses-list');
+        const eligibleContainer = document.getElementById('eligible-courses-list');
+        
+        // Hide eligible container and show current
+        eligibleContainer.style.display = 'none';
+        currentContainer.style.display = 'block';
+        currentContainer.innerHTML = '<div class="no-courses">Loading your current courses...</div>';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/get_current_courses`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                currentContainer.innerHTML = `<div class="no-courses">❌ Error: ${result.detail || "Failed to load courses"}</div>`;
+                return;
+            }
+
+            const courses = result.current_courses || [];
+            
+            if (courses.length === 0) {
+                currentContainer.innerHTML = '<div class="no-courses">📭 You are not currently enrolled in any courses.</div>';
+                return;
+            }
+
+            // Group courses by status (current vs completed)
+            const currentCourses = courses.filter(c => c.course_status === 'current');
+            const completedCourses = courses.filter(c => c.course_status === 'completed');
+
+            let html = '';
+            
+            if (currentCourses.length > 0) {
+                html += '<h4>📌 Currently Enrolled</h4>';
+                currentCourses.forEach(course => {
+                    html += `
+                        <div class="course-item">
+                            <strong>${escapeHtml(course.course_name)} (${course.course_code || 'N/A'})</strong>
+                            <div class="course-detail">
+                                Semester: ${course.semester_name || '?'} ${course.academic_year || ''}<br>
+                                Instructor: ${course.instructor_name || 'Not assigned'}<br>
+                                Grade: ${course.grade_value ? course.grade_value : 'Not graded yet'}
+                                ${course.corrected_grade ? ` (Corrected: ${course.corrected_grade})` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            if (completedCourses.length > 0) {
+                html += '<h4 style="margin-top: 20px;">✅ Completed Courses</h4>';
+                completedCourses.forEach(course => {
+                    html += `
+                        <div class="course-item">
+                            <strong>${escapeHtml(course.course_name)} (${course.course_code || 'N/A'})</strong>
+                            <div class="course-detail">
+                                Semester: ${course.semester_name || '?'} ${course.academic_year || ''}<br>
+                                Final Grade: ${course.grade_value || 'No grade'} 
+                                ${course.issued_at ? `(Issued: ${new Date(course.issued_at).toLocaleDateString()})` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            currentContainer.innerHTML = html;
+            
+        } catch (error) {
+            console.error("Error fetching current courses:", error);
+            currentContainer.innerHTML = '<div class="no-courses">❌ Connection error. Please try again.</div>';
+        }
+    }
+
+    // Fetch and display eligible courses (clickable for registration)
+    async function fetchEligibleCourses() {
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            setMsg("You must be logged in", true);
+            return;
+        }
+
+        const eligibleContainer = document.getElementById('eligible-courses-list');
+        const currentContainer = document.getElementById('current-courses-list');
+        
+        // Hide current container and show eligible
+        currentContainer.style.display = 'none';
+        eligibleContainer.style.display = 'block';
+        eligibleContainer.innerHTML = '<div class="no-courses">Loading eligible courses...</div>';
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/get_eligible_courses`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                eligibleContainer.innerHTML = `<div class="no-courses">❌ Error: ${result.detail || "Failed to load eligible courses"}</div>`;
+                return;
+            }
+
+            const courses = result.eligible_courses || [];
+            
+            if (courses.length === 0) {
+                eligibleContainer.innerHTML = '<div class="no-courses">✨ No eligible courses available at this time. Check back later or contact your advisor.</div>';
+                return;
+            }
+
+            let html = '<h4>📋 Courses You Can Register For</h4><p style="font-size:0.9em; color:#666;">Click on any course to register (confirmation required)</p>';
+            
+            courses.forEach(course => {
+                const spotsLeft = course.spots_left !== undefined ? course.spots_left : 'Limited';
+                const spotsText = spotsLeft === 0 ? '❌ Full' : (spotsLeft > 0 ? `✅ ${spotsLeft} spots left` : 'Spots unknown');
+                const isFull = spotsLeft === 0;
+                
+                html += `
+                    <div class="course-item eligible-course" 
+                         onclick="${isFull ? '' : `confirmRegistration(${course.id_course_groupe}, '${escapeHtml(course.course_name).replace(/'/g, "\\'")}')`}"
+                         style="${isFull ? 'opacity: 0.6; cursor: not-allowed;' : ''}">
+                        <strong>${escapeHtml(course.course_name)}</strong>
+                        <span class="spots-left">${spotsText}</span>
+                        <div class="course-detail">
+                            Group Type: ${course.group_type || 'Standard'}<br>
+                            Status: ${isFull ? '❌ No spots available' : '✅ Registration open'}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            eligibleContainer.innerHTML = html;
+            
+        } catch (error) {
+            console.error("Error fetching eligible courses:", error);
+            eligibleContainer.innerHTML = '<div class="no-courses">❌ Connection error. Please try again.</div>';
+        }
+    }
+
+    // Confirm registration with user, then call registration API
+    async function confirmRegistration(courseGroupId, courseName) {
+        const confirmed = confirm(`📝 Confirm Registration\n\nAre you sure you want to register for:\n"${courseName}"?\n\nThis action cannot be undone.`);
+        
+        if (!confirmed) {
+            return;
+        }
+        
+        await registerForCourse(courseGroupId, courseName);
+    }
+
+    // Register for a specific course
+    async function registerForCourse(courseGroupId, courseName) {
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            setMsg("You must be logged in", true);
+            return;
+        }
+
+        // Show loading state on the clicked course
+        setMsg(`⏳ Registering for ${courseName}...`, false);
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/register_for_course`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    course_id: courseGroupId  // Using id_course_groupe from eligible courses
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                setMsg(`✅ Successfully registered for ${courseName}!`, false);
+                // Refresh the eligible courses list to show updated spots
+                await fetchEligibleCourses();
+                // Optionally refresh current courses as well
+                // await fetchCurrentCourses();
+            } else {
+                const errorMsg = result.detail || "Registration failed";
+                setMsg(`❌ Registration failed: ${errorMsg}`, true);
+            }
+        } catch (error) {
+            console.error("Registration error:", error);
+            setMsg("❌ Connection error. Please check if the server is running.", true);
+        }
+    }
+
+    // Helper function to escape HTML to prevent XSS
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+
+
+        function showView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            const resp = document.getElementById('response');
+            resp.innerText = "";
+            resp.style.backgroundColor = "transparent";
+        }
+
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function setMsg(text, isError = false) {
+    const resp = document.getElementById('response');
+    
+    // If text is an object (like the FastAPI 'detail' array), extract the messages
+    if (typeof text === 'object' && text !== null) {
+        if (Array.isArray(text)) {
+            // Join multiple Pydantic errors into one string
+            text = text.map(err => `${err.loc[1]}: ${err.msg}`).join("<br>");
+        } else if (text.detail) {
+            // Handle cases where result.detail is the error
+            text = typeof text.detail === 'string' ? text.detail : JSON.stringify(text.detail);
+        }
+    }
+
+    resp.innerHTML = text; // Use innerHTML to support <br> tags
+    resp.style.color = "white";
+    resp.style.backgroundColor = isError ? "#dc3545" : "#28a745";
+}
+
+        // --- Registration Logic ---
+
+        async function submitRegister() {
+            const pass = document.getElementById('reg-password').value;
+            const hashedPass = await hashPassword(pass);
+
+            const data = {
+                name: document.getElementById('reg-name').value,
+                second_name: document.getElementById('reg-second-name').value,
+                surname: document.getElementById('reg-surname').value,
+                gender: document.getElementById('reg-gender').value,
+                login: document.getElementById('reg-login').value,
+                password: hashedPass
+            };
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await res.json();
+                if (res.ok) {
+                    setMsg("Registration Successful! You can now login.");
+                    showView('login-view');
+                } else {
+                    setMsg(result.detail || "Registration failed", true);
+                }
+            } catch (err) {
+                setMsg("Connection error", true);
+            }
+        }
+
+        // --- Login Logic ---
+
+        async function submitLogin() {
+            const user = document.getElementById('login-username').value;
+            const pass = document.getElementById('login-password').value;
+            const hashedPass = await hashPassword(pass);
+
+            const formData = new URLSearchParams();
+            formData.append('username', user);
+            formData.append('password', hashedPass);
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+
+                const result = await res.json();
+                if (res.ok) {
+                    sessionStorage.setItem('token', result.access_token);
+                    setMsg("Logged in successfully!");
+                    updateUI();
+                } else {
+                    setMsg(result.detail || "Login failed", true);
+                }
+            } catch (err) {
+                setMsg("Connection error", true);
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('token');
+            updateUI();
+            showView('login-view');
+            setMsg("Logged out.");
+        }
+
+        // Update the UI logic to show Dashboard link if logged in
+        function updateUI() {
+            const token = sessionStorage.getItem('token');
+            document.getElementById('logout-link').style.display = token ? 'inline' : 'none';
+            document.getElementById('dash-link').style.display = token ? 'inline' : 'none';
+        }
+
+        async function openDashboard() {
+    showView('dashboard-view');
+
+    const token = sessionStorage.getItem('token');
+
+    if (!token) {
+        setMsg("You must login first", true);
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/get_dashboard_data`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+            setMsg(result.detail || "Failed to load dashboard", true);
+            return;
+        }
+
+        // Show basic info
+        document.getElementById('application-status').innerText =
+            `Logged in as: ${result.login}`;
+
+        // If user does not have candidate profile
+        if (!result.has_profile) {
+            document.getElementById('candidate-form').style.display = 'block';
+            document.getElementById('programmes-section').style.display = 'none';
+            document.getElementById('application-status').innerText +=
+                " | No candidate profile found";
+        } else {
+    document.getElementById('candidate-form').style.display = 'none';
+
+    document.getElementById('application-status').innerText +=
+        " | Candidate profile exists";
+
+    loadProgrammes(); // 👈 ADD THIS
+}
+
+    } catch (err) {
+        setMsg("Connection error", true);
+    }
+}
+
+        // --- Initialization ---
+
+        window.onload = async () => {
+            updateUI();
+            try {
+                const res = await fetch(`${API_BASE_URL}/metadata/genders`);
+                const genders = await res.json();
+                const select = document.getElementById('reg-gender');
+                genders.forEach(g => {
+                    let opt = document.createElement('option');
+                    opt.value = opt.innerHTML = g;
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                console.error("Could not load genders", e);
+            }
+        };
+
+        async function submitCandidateData() {
+            const token = sessionStorage.getItem('token');
+            const data = {
+                nationality: document.getElementById('can-nationality').value,
+                pesel: document.getElementById('can-pesel').value,
+                email_address: document.getElementById('can-email').value,
+                phone_number: document.getElementById('can-phone').value,
+                address: document.getElementById('can-address').value
+            };
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/register_candidate`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` // This is critical!
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await res.json();
+                if (res.ok) {
+                    setMsg("Succesfuly registered candidate profile");
+                    document.getElementById('candidate-form').style.display = 'none';
+                    document.getElementById('application-status').innerText = "Status: Registered candidate profile";
+                } else {
+                    // This will show your Python ValueError or DB error
+                    setMsg(result.detail?.[0]?.msg || result.detail || "Submission failed", true);
+                }
+            } catch (err) {
+                setMsg("Connection error", true);
+            }
+        }
+
+        async function loadProgrammes() {
+    const token = sessionStorage.getItem('token');
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/get_available_programmes`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+            setMsg("Failed to load programmes", true);
+            return;
+        }
+
+        const container = document.getElementById('programmes-list');
+        container.innerHTML = "";
+
+        result.programmes.forEach(p => {
+            const div = document.createElement('div');
+
+            div.style.padding = "10px";
+            div.style.border = "1px solid #ccc";
+            div.style.marginBottom = "8px";
+            div.style.cursor = "pointer";
+
+            div.innerHTML = `
+                <b>${p.programme_name}</b><br>
+                Department: ${p.department_name}<br>
+                Degree: ${p.degree} | Language: ${p.language}
+            `;
+
+            div.onclick = () => applyToProgramme(p.id_programme);
+
+            container.appendChild(div);
+        });
+
+        document.getElementById('programmes-section').style.display = 'block';
+
+    } catch (err) {
+        setMsg("Connection error", true);
+    }
+}
+
+async function applyToProgramme(programmeId) {
+    const token = sessionStorage.getItem('token');
+
+    const motivation = prompt("Write your motivation letter:");
+
+    if (!motivation) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/submit_application`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                id_programme: programmeId,
+                motivation_letter: motivation
+            })
+        });
+
+        const result = await res.json();
+
+        if (res.ok) {
+            setMsg("Application submitted successfully!");
+        } else {
+            setMsg(result.detail || "Failed to submit application", true);
+        }
+
+    } catch (err) {
+        setMsg("Connection error", true);
+    }
+}
+
+async function loadApplications() {
+    const token = sessionStorage.getItem('token');
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/view_applications`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+            setMsg(result.detail || "Failed to load applications", true);
+            return;
+        }
+
+        const container = document.getElementById('applications-section');
+        container.innerHTML = "<h3>My Applications</h3>";
+
+        if (result.applications.length === 0) {
+            container.innerHTML += "<p>No applications yet.</p>";
+            return;
+        }
+
+        result.applications.forEach(a => {
+            const div = document.createElement('div');
+
+            div.style.border = "1px solid #ccc";
+            div.style.padding = "10px";
+            div.style.marginBottom = "8px";
+
+            div.innerHTML = `
+                <b>${a.programme_name}</b><br>
+                Status: ${a.status}<br>
+                Submitted: ${a.submitted_at}<br>
+                Processed: ${a.processed_at || "—"}<br>
+                <details>
+                    <summary>Motivation Letter</summary>
+                    <p>${a.motivation_letter}</p>
+                </details>
+            `;
+
+            container.appendChild(div);
+        });
+
+    } catch (err) {
+        setMsg("Connection error", true);
+    }
+}
+
+const originalOpenDashboard = openDashboard;
+    window.openDashboard = async function() {
+        await originalOpenDashboard();
+        
+        // Check if candidate profile exists and show course management
+        const token = sessionStorage.getItem('token');
+        if (!token) return;
+        
+        try {
+            const res = await fetch(`${API_BASE_URL}/get_dashboard_data`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await res.json();
+            
+            const courseManagement = document.getElementById('course-management');
+            if (result.has_profile) {
+                courseManagement.style.display = 'block';
+            } else {
+                courseManagement.style.display = 'none';
+            }
+        } catch (err) {
+            console.error("Could not determine profile status", err);
+        }
+    };
+    
+    // Also ensure after candidate profile is submitted, we show course management
+    const originalSubmitCandidate = submitCandidateData;
+    window.submitCandidateData = async function() {
+        await originalSubmitCandidate();
+        // After successful submission, refresh dashboard to show course management
+        setTimeout(() => {
+            openDashboard();
+        }, 1000);
+    };
+        
+    </script>
+</body>
+</html>

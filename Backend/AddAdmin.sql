@@ -1,0 +1,1 @@
+call register_test_admin('login', 'password');
