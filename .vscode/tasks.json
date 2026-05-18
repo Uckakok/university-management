@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Reset Database",
+            "type": "shell",
+            "command": "${command:python.interpreterPath} Backend/reset_db.py",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Add Test Data",
+            "type": "shell",
+            "command": "${command:python.interpreterPath} Backend/add_test_data.py",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
