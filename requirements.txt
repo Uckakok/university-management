@@ -2,7 +2,6 @@ fastapi[standard]
 mysql-connector-python
 pytest
 httpx
-pytest
 python-jose[cryptography]
 pydantic[email]
 faker

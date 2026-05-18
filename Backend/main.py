@@ -20,7 +20,6 @@ app = FastAPI()
 SECRET_KEY = os.getenv("APP_SECRET_KEY", "dev-secret-do-not-use-in-prod")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-ALGORITHM = "HS256"
 
 
 class GenderEnum(str, Enum):
@@ -34,12 +33,16 @@ class GenderEnum(str, Enum):
 async def get_genders():
     return [g.value for g in GenderEnum]
 
+def get_allowed_origins() -> List[str]:
+    origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5500")
+    return [origin.strip() for origin in origins.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=get_allowed_origins(),
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -264,6 +267,7 @@ async def get_applications(
         return {"applications": applications}
     finally:
         cursor.close()
+        db.close()
 
 
 @app.post("/reject_application")
@@ -401,7 +405,7 @@ async def get_registrations(
 
 
 class ApplicationSubmit(BaseModel):
-    id_programme: int = (Field(..., ge=0),)
+    id_programme: int = Field(..., ge=0)
     motivation_letter: str
 
 
@@ -516,9 +520,9 @@ async def view_applications(
         cursor.close()
 
 
-def get_employee_id_from_people_id(people_id=int, db = Depends(get_authenticated_db)) -> int:
+def get_employee_id_from_people_id(people_id: int, db = Depends(get_authenticated_db)) -> int:
     cursor = db.cursor()
-    cursor.execute(f"select employee_id_from_people_id({people_id})")
+    cursor.execute("SELECT employee_id_from_people_id(%s)", (people_id,))
 
     result = cursor.fetchone()
 
@@ -530,9 +534,9 @@ def get_employee_id_from_people_id(people_id=int, db = Depends(get_authenticated
     return int(result[0])
 
 
-def get_student_id_from_people_id(people_id=int, db = Depends(get_authenticated_db)) -> int:
+def get_student_id_from_people_id(people_id: int, db = Depends(get_authenticated_db)) -> int:
     cursor = db.cursor()
-    cursor.execute(f"select student_id_from_people_id({people_id})")
+    cursor.execute("SELECT student_id_from_people_id(%s)", (people_id,))
 
     result = cursor.fetchone()
 

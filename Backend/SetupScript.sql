@@ -436,9 +436,7 @@ begin
 	end;
 
 	start transaction;
-	set @hashed_password = lower(sha2(p_password, 256));
-
-	call register_user('Admin', 'Test', 'Admin', 'Not specified', p_login, @hashed_password);
+	call register_user('Admin', 'Test', 'Admin', 'Not specified', p_login, p_password);
 
 	select id_people into @admin_people_id from system_user where login = p_login;
 	update system_user set system_role = 'administrator' where login = p_login;
@@ -448,7 +446,7 @@ begin
 	commit;
 end //
 
-create procedure register_user (in p_name varchar(64), in p_second_name varchar(64), in p_surname varchar(64), in p_gender varchar(32), in p_login varchar(32), in p_password_hash varchar(256))
+create procedure register_user (in p_name varchar(64), in p_second_name varchar(64), in p_surname varchar(64), in p_gender varchar(32), in p_login varchar(32), in p_password varchar(256))
 begin
 	declare exit handler for sqlexception
 	begin
@@ -457,11 +455,13 @@ begin
 	end;
 
 	start transaction;
+	declare v_hashed_password varchar(255);
+	set v_hased_password = lower(sha2(p_password, 256));
 
 	insert into people (name, second_name, surname, gender) values (p_name, p_second_name, p_surname, p_gender);
 	set @p_id_people = last_insert_id();
 
-	insert into system_user (id_people, system_role, login, password_hash) values (@p_id_people, 'guest', p_login, p_password_hash);
+	insert into system_user (id_people, system_role, login, password_hash) values (@p_id_people, 'guest', p_login, v_hashed_password);
 
 	commit;
 end //
@@ -482,9 +482,11 @@ begin
 	commit;
 end //
 
-create procedure login_user(in p_login varchar(32), in p_password_hash varchar(255), in p_ip_address binary(4), out p_role varchar(20), out p_person_id int, out p_success boolean)
+create procedure login_user(in p_login varchar(32), in p_password varchar(255), in p_ip_address binary(4), out p_role varchar(20), out p_person_id int, out p_success boolean)
 begin
-	if (select count(*) from system_user where login = p_login and password_hash = p_password_hash) = 1 then
+	declare v_hashed_password varchar(255);
+	set v_hashed_password = lower(sha2(p_password, 256));
+	if (select count(*) from system_user where login = p_login and password_hash = v_hashed_password) = 1 then
 		update system_user set last_login_date = current_timestamp, last_login_ip = p_ip_address where login = p_login;
 		select system_role into p_role from system_user where login = p_login;
 		select id_people into p_person_id from system_user where login = p_login;

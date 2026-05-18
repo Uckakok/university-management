@@ -31,11 +31,6 @@ function escapeHtml(str) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 }
 
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 function getToken() { return sessionStorage.getItem('token'); }
 
 async function apiFetch(path, options = {}) {
@@ -78,8 +73,7 @@ async function login() {
   btn.innerHTML = '<span class="spinner"></span> Authenticating…';
 
   try {
-    const hashed = await sha256(password);
-    const form = new URLSearchParams({ username, password: hashed });
+    const form = new URLSearchParams({ username: username, password: password });
     const { ok, data } = await apiFetch('/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
